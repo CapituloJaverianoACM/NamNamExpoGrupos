@@ -820,7 +820,18 @@ $('#name').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnPlay
 $('#btnAgain').addEventListener('click', () => { ac(); lastEntryId = null; toReady(); });
 $('#btnRecal').addEventListener('click', () => { ac(); lastEntryId = null; if (mouseMode) toReady(); else toCalib(); });
 $('#btnMenu').addEventListener('click', () => { $('#name').value = ''; toMenu(); $('#name').focus(); });
-$('#btnReset').addEventListener('click', () => { if (confirm('¿Borrar todos los puntajes de la tabla?')){ saveLB([]); renderLB($('#lbMenu')); } });
+const RESET_PASSWORD_HASH = '__RESET_PASSWORD_HASH__'; // lo inyecta el workflow desde el secret
+async function sha256Hex(t){
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join('');
+}
+async function askResetPassword(){
+  const pw = prompt('Contraseña para borrar la tabla:');
+  if (pw === null) return;
+  if (await sha256Hex(pw) === RESET_PASSWORD_HASH){ saveLB([]); renderLB($('#lbMenu')); }
+  else alert('Contraseña incorrecta');
+}
+$('#btnReset').addEventListener('click', askResetPassword);
 $('#btnRetry').addEventListener('click', boot);
 $('#btnMouse').addEventListener('click', () => { mouseMode = true; ac(); toMenu(); });
 
