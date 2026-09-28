@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¡Ñam Ñam! — Come con la boca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --leaf:#0f3d2e;
+    --leaf2:#1f6b4a;
+    --mango:#ffb000;
+    --guava:#ff5d73;
+    --paper:#fffaf0;
+    --rot:#8a9a2b;
+    --display:'Lilita One', 'Arial Rounded MT Bold', 'Trebuchet MS', sans-serif;
+    --body:'Rubik', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  html,body{height:100%;background:var(--leaf);overflow:hidden;font-family:var(--body);color:var(--paper)}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  video{position:fixed;width:1px;height:1px;opacity:0;pointer-events:none}
+  .hidden{display:none!important}
+
+  .overlay{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+    padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));
+    background:rgba(15,61,46,.8);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+  .stand{width:min(960px,100%);max-height:100%;overflow:auto;background:var(--paper);color:var(--leaf);
+    border:4px solid var(--leaf);border-radius:24px;box-shadow:0 12px 0 var(--leaf)}
+  .awning{height:46px;border-bottom:4px solid var(--leaf);border-radius:20px 20px 0 0;
+    background:repeating-linear-gradient(90deg,var(--leaf2) 0 52px,var(--paper) 52px 104px);
+    -webkit-mask:radial-gradient(26px 14px at 26px 46px,transparent 98%,#000) -0px 0/52px 100%;
+            mask:radial-gradient(26px 14px at 26px 46px,transparent 98%,#000) 0 0/52px 100%}
+  .sign{margin:18px 28px 0;padding:18px 20px 16px;background:var(--leaf);border-radius:18px;text-align:center;
+    border:6px solid #b07a3c;box-shadow:inset 0 0 0 3px rgba(255,255,255,.08)}
+  .sign h1{font-family:var(--display);font-weight:400;font-size:clamp(56px,11vw,116px);line-height:.95;color:var(--mango);
+    text-shadow:0 5px 0 var(--guava);transform:rotate(-2deg)}
+  .sign p{color:var(--paper);font-size:clamp(15px,2.2vw,18px);margin-top:10px}
+  .cols{display:grid;grid-template-columns:1.15fr 1fr;gap:28px;padding:24px 28px 28px}
+  @media (max-width:760px){.cols{grid-template-columns:1fr}}
+  h2{font-family:var(--display);font-weight:400;font-size:26px;color:var(--leaf2);margin-bottom:12px}
+  .rules{list-style:none;display:grid;gap:10px;margin-bottom:22px}
+  .rules li{display:flex;gap:14px;align-items:center;font-size:16px;line-height:1.35}
+  .rules .ico{flex:0 0 50px;height:50px;border-radius:16px;background:#fff;border:3px solid var(--leaf);
+    display:grid;place-items:center;font-size:26px}
+  .rules .ico.bad{background:#e6ebc9;filter:saturate(.6)}
+  .rules b{font-weight:700}
+  label.field{display:block;font-weight:500;font-size:15px;margin-bottom:6px}
+  input[type=text]{width:100%;font:500 18px var(--body);padding:12px 14px;border:3px solid var(--leaf);border-radius:14px;
+    background:#fff;color:var(--leaf);margin-bottom:16px}
+  .seg{display:flex;border:3px solid var(--leaf);border-radius:14px;overflow:hidden;margin-bottom:20px}
+  .seg button{flex:1;font:500 15px var(--body);padding:10px 6px;border:0;background:#fff;color:var(--leaf);cursor:pointer}
+  .seg button+button{border-left:3px solid var(--leaf)}
+  .seg button[aria-pressed=true]{background:var(--mango);color:var(--leaf)}
+  .btn{font-family:var(--display);font-size:26px;padding:12px 26px;background:var(--guava);color:#fff;
+    border:3px solid var(--leaf);border-radius:16px;box-shadow:0 6px 0 var(--leaf);cursor:pointer;width:100%;
+    transition:transform .08s, box-shadow .08s}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--leaf)}
+  .btn.alt{background:#fff;color:var(--leaf);font-size:20px}
+  button:focus-visible,input:focus-visible{outline:4px solid var(--mango);outline-offset:2px}
+  .row{display:flex;gap:12px}
+  .row .btn{flex:1}
+
+  .board{background:var(--leaf);color:var(--paper);border-radius:18px;padding:18px}
+  .board h2{color:var(--mango)}
+  .board ol{list-style:none;display:grid;gap:6px;counter-reset:r}
+  .board li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;
+    background:rgba(255,255,255,.08);font-size:15px;counter-increment:r}
+  .board li::before{content:counter(r);font-family:var(--display);font-size:20px;color:var(--mango);text-align:center}
+  .board li:first-child{background:var(--mango);color:var(--leaf)}
+  .board li:first-child::before{content:"🏆"}
+  .board li.me{outline:3px solid var(--guava)}
+  .board .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+  .board .pts{font-family:var(--display);font-size:22px}
+  .board .sub{font-size:12px;opacity:.75;display:block;font-weight:400}
+  .board .empty{font-size:15px;opacity:.8;line-height:1.4}
+  .linkbtn{background:none;border:0;color:var(--paper);opacity:.6;font:400 13px var(--body);text-decoration:underline;cursor:pointer;margin-top:12px}
+  .linkbtn.dark{color:var(--leaf);opacity:.75;display:block;margin:14px auto 0}
+
+  .result{text-align:center;padding:10px 0 18px}
+  .result .big{font-family:var(--display);font-size:clamp(72px,15vw,130px);line-height:1;color:var(--guava);text-shadow:0 5px 0 var(--leaf)}
+  .result .rank{font-size:18px;margin-top:8px;font-weight:500}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 20px}
+  .stats div{background:#fff;border:3px solid var(--leaf);border-radius:14px;padding:10px 6px;text-align:center}
+  .stats b{display:block;font-family:var(--display);font-size:28px;font-weight:400}
+  .stats small{font-size:13px}
+  @media (max-width:480px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+  #hud{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 0;pointer-events:none}
+  .pill{background:rgba(15,61,46,.82);border:3px solid var(--paper);border-radius:18px;padding:8px 14px;min-width:120px}
+  .pill small{display:block;font-size:13px;opacity:.85}
+  .pill b{font-family:var(--display);font-weight:400;font-size:clamp(26px,4.4vw,40px);line-height:1.05}
+  .pill.right{text-align:right}
+  #timer{font-family:var(--display);font-size:clamp(52px,10vw,96px);line-height:1;color:var(--paper);text-shadow:0 5px 0 var(--guava)}
+  #timer.urgent{color:var(--mango)}
+  @media (prefers-reduced-motion:no-preference){#timer.urgent{animation:pulse .5s infinite alternate}}
+  @keyframes pulse{to{transform:scale(1.12)}}
+  #combo{font-family:var(--display);color:var(--mango);font-size:20px;margin-top:2px}
+
+  #big{position:fixed;inset:0;z-index:6;display:grid;place-items:center;pointer-events:none;
+    font-family:var(--display);font-size:min(30vw,34vh);color:var(--mango);text-shadow:0 10px 0 var(--guava)}
+  #hint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateX(-50%);z-index:6;
+    background:var(--paper);color:var(--leaf);border:3px solid var(--leaf);border-radius:999px;padding:10px 20px;
+    font-weight:500;font-size:17px;white-space:nowrap;pointer-events:none;box-shadow:0 5px 0 var(--leaf);max-width:calc(100vw - 24px);
+    overflow:hidden;text-overflow:ellipsis}
+  #meter{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);z-index:6;width:20px;height:130px;
+    border:3px solid var(--paper);border-radius:10px;background:rgba(15,61,46,.82);overflow:hidden;pointer-events:none}
+  #meterFill{position:absolute;left:0;right:0;bottom:0;background:var(--mango)}
+  .mark{position:absolute;left:0;right:0;height:2px;background:var(--paper)}
+  #meterLbl{position:fixed;left:44px;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);z-index:6;font-size:12px;opacity:.8;pointer-events:none}
+
+  .msg{padding:28px;text-align:center;font-size:17px;line-height:1.5}
+  .msg h2{font-size:30px}
+  .msg p{max-width:56ch;margin:0 auto 18px}
+  .spinner{font-size:56px;margin:0 auto 12px;width:max-content}
+  @media (prefers-reduced-motion:no-preference){.spinner{animation:bob .8s ease-in-out infinite alternate}}
+  @keyframes bob{to{transform:translateY(-10px) rotate(12deg)}}
+</style>
+</head>
+<body>
+<video id="v" playsinline muted></video>
+<canvas id="c"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="pill"><small>Puntos</small><b id="hScore">0</b><div id="combo"></div></div>
+  <div id="timer">30</div>
+  <div class="pill right"><small>Comidas</small><b id="hEaten">0</b></div>
+</div>
+<div id="big" class="hidden"></div>
+<div id="hint" class="hidden"></div>
+<div id="meter" class="hidden"><div id="meterFill"></div><div class="mark" id="mOpen"></div><div class="mark" id="mClose" style="opacity:.5"></div></div>
+<div id="meterLbl" class="hidden">boca</div>
+
+<div class="overlay" id="scrLoading">
+  <div class="stand"><div class="awning"></div>
+    <div class="msg">
+      <div class="spinner">🍉</div>
+      <h2>Surtiendo el puesto de frutas</h2>
+      <p id="loadMsg">Permite el acceso a la cámara cuando el navegador lo pida.</p>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="scrError">
+  <div class="stand"><div class="awning"></div>
+    <div class="msg">
+      <h2>No se pudo activar la cámara</h2>
+      <p id="errMsg"></p>
+      <p>Abre el archivo desde <b>https://</b> o <b>localhost</b>, revisa el permiso de cámara del navegador y que haya internet para descargar el detector de cara.</p>
+      <div class="row" style="max-width:520px;margin:0 auto">
+        <button class="btn" id="btnRetry">Reintentar</button>
+        <button class="btn alt" id="btnMouse">Practicar con mouse</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="scrMenu">
+  <div class="stand">
+    <div class="awning"></div>
+    <div class="sign">
+      <h1>¡Ñam Ñam!</h1>
+      <p>60 segundos para comer todo lo que puedas. Sin manos.</p>
+    </div>
+    <div class="cols">
+      <div>
+        <h2>Cómo se juega</h2>
+        <ul class="rules">
+          <li><span class="ico">🍓</span><span>Mueve la cabeza para ponerte debajo de la fruta y <b>abre la boca</b> para comértela.</span></li>
+          <li><span class="ico bad">🍌</span><span>Lo <b>podrido</b> viene verde y con moscas. <b>Cierra la boca</b> y rebota.</span></li>
+          <li><span class="ico">🌟</span><span>La estrella vale 3. Varias frutas seguidas multiplican los puntos.</span></li>
+        </ul>
+        <label class="field" for="name">Tu nombre</label>
+        <input type="text" id="name" maxlength="18" placeholder="Ej. Juanes" autocomplete="off">
+        <label class="field">Qué tanto hay que abrir la boca</label>
+        <div class="seg" id="sens">
+          <button data-v="0.28">Poquito</button>
+          <button data-v="0.4" aria-pressed="true">Normal</button>
+          <button data-v="0.55">Bien grande</button>
+        </div>
+        <button class="btn" id="btnPlay">Calibrar y jugar</button>
+      </div>
+      <div class="board">
+        <h2>Los más comelones</h2>
+        <ol id="lbMenu"></ol>
+        <button class="linkbtn" id="btnReset">Borrar tabla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="scrEnd">
+  <div class="stand">
+    <div class="awning"></div>
+    <div class="cols">
+      <div>
+        <div class="result">
+          <h2 id="endName">¡Tiempo!</h2>
+          <div class="big" id="endScore">0</div>
+          <div class="rank" id="endRank"></div>
+        </div>
+        <div class="stats">
+          <div><b id="sEaten">0</b><small>frutas comidas</small></div>
+          <div><b id="sRotten">0</b><small>podridas comidas</small></div>
+          <div><b id="sBlocked">0</b><small>podridas esquivadas</small></div>
+          <div><b id="sCombo">0</b><small>mejor racha</small></div>
+        </div>
+        <div class="row">
+          <button class="btn" id="btnAgain">Jugar otra vez</button>
+          <button class="btn alt" id="btnMenu">Cambiar jugador</button>
+        </div>
+        <button class="linkbtn dark" id="btnRecal">Recalibrar mi cara</button>
+      </div>
+      <div class="board">
+        <h2>Los más comelones</h2>
+        <ol id="lbEnd"></ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const MP_VER = '0.10.14';
+const MP_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}/vision_bundle.mjs`;
+const MP_WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}/wasm`;
+const MODEL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+
+const GAME_TIME = 30;
+const LB_KEY = 'nam-nam-scores-v1';
+const C = { leaf:'#0f3d2e', leaf2:'#1f6b4a', mango:'#ffb000', guava:'#ff5d73', paper:'#fffaf0', rot:'#8a9a2b' };
+const FONT = "'Lilita One','Arial Rounded MT Bold','Trebuchet MS',sans-serif";
+const EMOJI_FONT = "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+const GOOD = ['🍎','🍌','🍓','🍉','🍇','🍒','🥭','🍍','🍑','🥝','🍊','🍐'];
+// Contorno exterior de los labios en la malla de MediaPipe
+const LIPS = [61,146,91,181,84,17,314,405,321,375,291,409,270,269,267,0,37,39,40,185];
+const NEEDED = [...new Set([...LIPS, 13, 14, 61, 291, 234, 454, 10, 152])];
+
+const $ = s => document.querySelector(s);
+const canvas = $('#c'), ctx = canvas.getContext('2d');
+const video = $('#v');
+let W = 0, H = 0, DPR = 1;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+addEventListener('resize', resize);
+
+// ---------- Estado ----------
+let state = 'loading'; // loading | error | menu | calib | ready | countdown | playing | over
+let landmarker = null, camOK = false, mouseMode = false, debug = false;
+let lastVideoTime = -1, face = null, lastSeen = 0, lastCenter = null, others = [];
+const mouth = { x: 0, y: 0, w: 60, has: false, open: false, val: 0, chomp: 0 };
+const cal = { done: false, size: 0, closed: 0, opened: 0 };
+const th = { open: 0.35, close: 0.2 };
+let sensK = 0.4, calib = null;
+let foods = [], particles = [], texts = [];
+let score = 0, eaten = 0, rottenEaten = 0, blocked = 0, combo = 0, bestCombo = 0;
+let timeLeft = GAME_TIME, startTime = 0, spawnTimer = 0, countdownStart = 0;
+let lastCount = -1, lastTick = -1, frenzy = false, shake = 0, sick = 0, readyHold = 0;
+let lastFrame = performance.now(), playerName = '', lastEntryId = null;
+let mouseDown = false;
+
+// ---------- Sprites de comida (se dibujan una vez) ----------
+const spriteCache = new Map();
+function sprite(emoji, rotten){
+  const key = emoji + (rotten ? ':r' : '');
+  if (spriteCache.has(key)) return spriteCache.get(key);
+  const S = 128, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const g = cv.getContext('2d');
+  g.font = `${S * 0.8}px ${EMOJI_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(emoji, S / 2, S / 2 + S * 0.05);
+  if (rotten){
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = 'rgba(96,112,24,.62)'; g.fillRect(0, 0, S, S);
+    g.fillStyle = 'rgba(60,40,10,.75)';
+    for (let i = 0; i < 6; i++){ g.beginPath(); g.arc(S * (.25 + Math.random() * .5), S * (.25 + Math.random() * .5), S * (.04 + Math.random() * .05), 0, Math.PI * 2); g.fill(); }
+  }
+  spriteCache.set(key, cv);
+  return cv;
+}
+
+// ---------- Sonido ----------
+let AC = null, noise = null;
+function ac(){
+  if (!AC){
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    noise = AC.createBuffer(1, AC.sampleRate * 0.5, AC.sampleRate);
+    const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function env(g, t, a, peak, dur){ g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
+function tone(freq, dur, type = 'triangle', vol = .3, slideTo, delay = 0){
+  if (!AC) return; const t = AC.currentTime + delay;
+  const o = AC.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  const g = AC.createGain(); env(g, t, .005, vol, dur); o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur + .02);
+}
+function crunch(delay = 0, f = 900){
+  if (!AC) return; const t = AC.currentTime + delay;
+  const n = AC.createBufferSource(); n.buffer = noise;
+  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = 1.2;
+  const g = AC.createGain(); env(g, t, .003, .7, .09); n.connect(bp).connect(g).connect(AC.destination); n.start(t); n.stop(t + .12);
+}
+const sNam = star => { crunch(0, 1000); crunch(.1, 750); if (star){ tone(1320, .12, 'sine', .2, 1980, .05); tone(1980, .18, 'sine', .15, null, .15); } };
+const sYuck = () => { tone(260, .45, 'sawtooth', .18, 90); crunch(0, 400); };
+const sBoing = () => tone(220, .22, 'sine', .3, 660);
+
+// ---------- Cámara + modelo ----------
+async function boot(){
+  show('scrLoading');
+  try {
+    $('#loadMsg').textContent = 'Permite el acceso a la cámara cuando el navegador lo pida.';
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+    video.srcObject = stream; await video.play(); camOK = true;
+    $('#loadMsg').textContent = 'Cargando el detector de cara…';
+    const vision = await import(MP_URL);
+    const fileset = await vision.FilesetResolver.forVisionTasks(MP_WASM);
+    const opts = d => ({ baseOptions: { modelAssetPath: MODEL, delegate: d }, runningMode: 'VIDEO', numFaces: 3,
+      outputFaceBlendshapes: true, minFaceDetectionConfidence: .6, minFacePresenceConfidence: .6, minTrackingConfidence: .5 });
+    try { landmarker = await vision.FaceLandmarker.createFromOptions(fileset, opts('GPU')); }
+    catch { landmarker = await vision.FaceLandmarker.createFromOptions(fileset, opts('CPU')); }
+    mouseMode = false;
+    toMenu();
+  } catch (e){
+    console.error(e);
+    state = 'error';
+    $('#errMsg').textContent = e && e.name === 'NotAllowedError' ? 'El permiso de cámara fue rechazado.' : `Detalle: ${e && e.message ? e.message : e}`;
+    show('scrError');
+  }
+}
+
+function coverRect(){
+  const vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
+  const s = Math.max(W / vw, H / vh), dw = vw * s, dh = vh * s;
+  return { ox: (W - dw) / 2, oy: (H - dh) / 2, dw, dh };
+}
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const median = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+
+function processFace(now){
+  if (mouseMode || !landmarker || !camOK || video.readyState < 2) return;
+  if (video.currentTime === lastVideoTime) return;
+  lastVideoTime = video.currentTime;
+  let res;
+  try { res = landmarker.detectForVideo(video, now); } catch { return; }
+  const r = coverRect();
+  const cands = (res && res.faceLandmarks ? res.faceLandmarks : []).map((lm, i) => {
+    const P = {};
+    for (const k of NEEDED) P[k] = { x: r.ox + (1 - lm[k].x) * r.dw, y: r.oy + lm[k].y * r.dh };
+    const size = dist(P[234], P[454]);
+    const center = { x: (P[234].x + P[454].x) / 2, y: (P[10].y + P[152].y) / 2 };
+    const m = { x: (P[13].x + P[14].x) / 2, y: (P[13].y + P[14].y) / 2 };
+    const mw = dist(P[61], P[291]);
+    // Qué tan abierta está la boca: blendshape jawOpen (si existe) o proporción de los labios
+    let open = dist(P[13], P[14]) / Math.max(mw, 1);
+    const bs = res.faceBlendshapes && res.faceBlendshapes[i];
+    if (bs && bs.categories){ const j = bs.categories.find(c => c.categoryName === 'jawOpen'); if (j) open = j.score; }
+    return { P, size, center, mouth: m, mw, open };
+  });
+  if (state === 'calib'){ calibFrame(cands, now); return; }
+  const chosen = pickFace(cands, now);
+  others = cands.filter(c => c !== chosen);
+  if (chosen) useFace(chosen, now);
+  else if (now - lastSeen > 300){ face = null; mouth.has = false; }
+}
+
+// Elige la cara del jugador e ignora a la gente de atrás
+function pickFace(cands, now){
+  let pool = cands;
+  if (cal.done) pool = pool.filter(c => c.size > cal.size * 0.6 && c.size < cal.size * 1.8);
+  if (!pool.length) return null;
+  if (lastCenter && now - lastSeen < 700){
+    let best = null, bd = Infinity;
+    for (const c of pool){ const d = dist(c.center, lastCenter); if (d < bd){ bd = d; best = c; } }
+    return bd < Math.max(W, H) * 0.3 ? best : null;
+  }
+  return pool.reduce((a, b) => b.size > a.size ? b : a);
+}
+
+function useFace(c, now){
+  face = c; lastSeen = now; lastCenter = c.center;
+  if (!mouth.has){ mouth.x = c.mouth.x; mouth.y = c.mouth.y; mouth.has = true; }
+  mouth.x += (c.mouth.x - mouth.x) * 0.6;
+  mouth.y += (c.mouth.y - mouth.y) * 0.6;
+  mouth.w = c.mw;
+  mouth.val = mouth.val * 0.4 + c.open * 0.6;
+  // Histéresis: abre con un umbral y cierra con otro más bajo
+  if (!mouth.open && mouth.val > th.open) mouth.open = true;
+  else if (mouth.open && mouth.val < th.close) mouth.open = false;
+}
+
+// ---------- Calibración ----------
+function calibZone(){ return { x: W / 2, y: H * 0.47, rx: Math.max(110, Math.min(W, H) * 0.2), ry: Math.max(140, Math.min(W, H) * 0.27) }; }
+function inZone(p, z){ return ((p.x - z.x) / z.rx) ** 2 + ((p.y - z.y) / z.ry) ** 2 < 1; }
+
+function calibFrame(cands, now){
+  const z = calibZone();
+  const dt = calib.lastT ? Math.min(0.1, (now - calib.lastT) / 1000) : 0;
+  calib.lastT = now;
+  let c = null;
+  if (calib.step === 1){
+    // Paso 1: la cara dentro del óvalo, con la boca cerrada
+    const inside = cands.filter(k => inZone(k.center, z));
+    c = inside.reduce((a, b) => !a || b.size > a.size ? b : a, null);
+    if (c){
+      calib.hold += dt; calib.sizes.push(c.size); calib.closedVals.push(c.open); calib.center = c.center;
+      if (calib.hold >= 1.5){
+        calib.step = 2; calib.hold = 0; calib.closed = median(calib.closedVals);
+        tone(660, .12, 'sine', .25);
+      }
+    } else {
+      calib.hold = Math.max(0, calib.hold - dt * 2);
+      if (calib.hold === 0){ calib.sizes.length = 0; calib.closedVals.length = 0; }
+    }
+  } else {
+    // Paso 2: abrir la boca bien grande, siguiendo la misma cara
+    let bd = Infinity;
+    for (const k of cands){ const d = dist(k.center, calib.center); if (d < bd){ bd = d; c = k; } }
+    if (c && bd > Math.max(W, H) * 0.3) c = null;
+    if (c){
+      calib.center = c.center;
+      if (c.open > calib.closed + 0.15){
+        calib.hold += dt; calib.openVals.push(c.open);
+        if (calib.hold >= 0.7) return finishCalib(false);
+      } else calib.hold = Math.max(0, calib.hold - dt);
+    }
+    calib.elapsed += dt;
+    if (calib.elapsed > 8) return finishCalib(true);
+  }
+  const shown = c || (cands.length ? cands.reduce((a, b) => b.size > a.size ? b : a) : null);
+  if (shown){ face = shown; lastSeen = now; mouth.x = shown.mouth.x; mouth.y = shown.mouth.y; mouth.w = shown.mw; mouth.val = shown.open; mouth.has = true; }
+  else if (now - lastSeen > 300){ face = null; mouth.has = false; }
+  others = cands.filter(k => k !== shown);
+}
+
+function finishCalib(timedOut){
+  cal.size = median(calib.sizes) || 150;
+  cal.closed = calib.closed || 0;
+  cal.opened = (!timedOut && calib.openVals.length) ? median(calib.openVals) : 0;
+  cal.done = true;
+  applyThresholds();
+  lastCenter = calib.center; mouth.open = false;
+  tone(990, .18, 'sine', .3);
+  showBig('✓', 700);
+  toReady();
+}
+function applyThresholds(){
+  if (cal.opened && cal.opened - cal.closed > 0.12){
+    const span = cal.opened - cal.closed;
+    th.open = cal.closed + span * sensK;
+    th.close = cal.closed + span * sensK * 0.6;
+  } else {
+    th.open = (cal.closed || 0.05) + 0.1 + sensK * 0.45;
+    th.close = th.open * 0.6;
+  }
+}
+
+// ---------- Comida ----------
+function spawn(prog, diff){
+  const roll = Math.random();
+  const rottenChance = 0.15 + prog * 0.2 + (frenzy ? 0.05 : 0);
+  const kind = roll < 0.08 ? 'star' : roll < 0.08 + rottenChance ? 'rotten' : 'good';
+  const emoji = kind === 'star' ? '🌟' : GOOD[Math.floor(Math.random() * GOOD.length)];
+  const r = Math.max(28, Math.min(W, H) * 0.058) * (kind === 'star' ? 0.85 : 1);
+  foods.push({
+    kind, spr: sprite(emoji, kind === 'rotten'), r,
+    x: W * (0.18 + Math.random() * 0.64), y: -r * 1.5,
+    vx: (Math.random() - .5) * W * 0.06,
+    vy: H * (0.22 + Math.random() * 0.1) * diff * (kind === 'star' ? 1.25 : 1),
+    rot: Math.random() * 6, vr: (Math.random() - .5) * 3,
+    st: 'fall', t: 0, age: Math.random() * 10
+  });
+}
+
+function checkMouth(f){
+  if (!mouth.has || f.st !== 'fall') return;
+  const hitR = Math.max(34, mouth.w * 0.75);
+  if (Math.hypot(f.x - mouth.x, f.y - mouth.y) > hitR + f.r * 0.45) return;
+  if (state !== 'playing') return;
+  if (mouth.open){
+    f.st = 'eaten'; f.t = 0; f.fx = f.x; f.fy = f.y;
+    mouth.chomp = 1;
+    if (f.kind === 'rotten'){
+      rottenEaten++; combo = 0; score = Math.max(0, score - 3); sick = 1; shake = .8;
+      sYuck(); addText(mouth.x, mouth.y - 60, '¡Guácala! −3', C.rot, 44);
+      crumbs(f.x, f.y, ['#6b7a1f', '#3c2f10', '#a3b43a'], 14);
+    } else {
+      eaten++; combo++; bestCombo = Math.max(bestCombo, combo);
+      const mult = Math.min(4, 1 + Math.floor(combo / 5));
+      const pts = (f.kind === 'star' ? 3 : 1) * mult;
+      score += pts;
+      sNam(f.kind === 'star');
+      addText(mouth.x, mouth.y - 60, `+${pts}`, f.kind === 'star' ? C.mango : C.paper, f.kind === 'star' ? 52 : 42);
+      crumbs(f.x, f.y, f.kind === 'star' ? [C.mango, C.paper] : [C.guava, C.mango, C.paper], 10);
+      if (combo % 5 === 0) addText(W / 2, H * 0.26, `¡Racha x${mult}!`, C.mango, 58);
+    }
+  } else {
+    // Boca cerrada: rebota
+    f.st = 'bounce'; f.vy = -Math.abs(f.vy) * 0.8 - H * 0.2; f.vx = (f.x < mouth.x ? -1 : 1) * W * (0.15 + Math.random() * 0.1);
+    f.vr = (Math.random() - .5) * 14;
+    sBoing();
+    if (f.kind === 'rotten'){ blocked++; addText(mouth.x, mouth.y - 60, '¡Salvado!', C.paper, 36); }
+    else { combo = 0; addText(mouth.x, mouth.y - 60, '¡Abre la boca!', C.guava, 34); }
+  }
+  updateHUD();
+}
+function crumbs(x, y, cols, n){
+  for (let i = 0; i < n; i++){
+    const a = Math.random() * Math.PI * 2, s = 80 + Math.random() * 260;
+    particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 100, life: .7, max: .7, c: cols[i % cols.length], s: 3 + Math.random() * 6 });
+  }
+}
+function addText(x, y, txt, c, size){ texts.push({ x, y, txt, c, size, life: 1 }); }
+
+// ---------- Flujo ----------
+function toCalib(){
+  state = 'calib'; hideAll(); foods = [];
+  cal.done = false; lastCenter = null; face = null; mouth.has = false;
+  calib = { step: 1, hold: 0, sizes: [], closedVals: [], openVals: [], closed: 0, elapsed: 0, lastT: 0, center: null };
+  $('#hud').classList.add('hidden'); setMeter(false);
+  $('#hint').classList.remove('hidden');
+}
+function toReady(){
+  state = 'ready'; hideAll(); foods = []; readyHold = 0;
+  setMeter(!mouseMode);
+  $('#hint').classList.remove('hidden');
+}
+function startCountdown(){ state = 'countdown'; countdownStart = performance.now(); lastCount = -1; }
+function startGame(now){
+  state = 'playing';
+  score = 0; eaten = 0; rottenEaten = 0; blocked = 0; combo = 0; bestCombo = 0; frenzy = false; lastTick = -1;
+  startTime = now; spawnTimer = 0.3; timeLeft = GAME_TIME;
+  $('#hud').classList.remove('hidden'); $('#timer').classList.remove('urgent');
+  updateHUD();
+}
+function endGame(){
+  state = 'over';
+  tone(523, .15, 'square', .12); tone(392, .15, 'square', .12, null, .15); tone(262, .4, 'square', .12, null, .3);
+  showBig('¡Tiempo!', 1400);
+  $('#hint').classList.add('hidden');
+  let rankText;
+  if (!mouseMode){
+    const lb = loadLB();
+    lastEntryId = Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    lb.push({ id: lastEntryId, name: playerName, score, eaten, rotten: rottenEaten, date: new Date().toISOString() });
+    lb.sort((a, b) => b.score - a.score || a.rotten - b.rotten);
+    const pos = lb.findIndex(e => e.id === lastEntryId) + 1;
+    saveLB(lb.slice(0, 50));
+    rankText = pos === 1 ? '🏆 ¡Nuevo récord! Eres el más comelón.' : `Quedaste en el puesto ${pos} de ${lb.length}.`;
+  } else rankText = 'Modo práctica con mouse: este puntaje no entra a la tabla.';
+  setTimeout(() => {
+    $('#hud').classList.add('hidden'); setMeter(false);
+    $('#endName').textContent = mouseMode ? 'Práctica' : playerName;
+    $('#endScore').textContent = score;
+    $('#endRank').textContent = rankText;
+    $('#sEaten').textContent = eaten; $('#sRotten').textContent = rottenEaten; $('#sBlocked').textContent = blocked; $('#sCombo').textContent = bestCombo;
+    renderLB($('#lbEnd'));
+    show('scrEnd'); $('#btnAgain').focus();
+  }, 1500);
+}
+function toMenu(){
+  state = 'menu'; foods = [];
+  $('#hud').classList.add('hidden'); $('#hint').classList.add('hidden'); setMeter(false);
+  renderLB($('#lbMenu'));
+  show('scrMenu');
+}
+
+// ---------- UI ----------
+const screens = ['scrLoading', 'scrError', 'scrMenu', 'scrEnd'];
+function show(id){ screens.forEach(s => $('#' + s).classList.toggle('hidden', s !== id)); }
+function hideAll(){ screens.forEach(s => $('#' + s).classList.add('hidden')); }
+function setMeter(on){ $('#meter').classList.toggle('hidden', !on); $('#meterLbl').classList.toggle('hidden', !on); }
+let bigTimer = null;
+function showBig(txt, ms = 800){
+  const el = $('#big'); el.textContent = txt; el.classList.remove('hidden');
+  clearTimeout(bigTimer); bigTimer = setTimeout(() => el.classList.add('hidden'), ms);
+}
+function updateHUD(){
+  $('#hScore').textContent = score;
+  $('#hEaten').textContent = eaten;
+  const mult = Math.min(4, 1 + Math.floor(combo / 5));
+  $('#combo').textContent = combo >= 3 ? `🔥 ${combo} seguidas${mult > 1 ? ' · x' + mult : ''}` : '';
+  $('#timer').textContent = Math.ceil(timeLeft);
+  $('#timer').classList.toggle('urgent', timeLeft <= 10);
+}
+function updateHint(){
+  if (!['calib', 'ready', 'countdown', 'playing'].includes(state)) return;
+  const el = $('#hint');
+  let msg = '';
+  if (state === 'calib'){
+    if (!face) msg = 'Ponte frente a la cámara 🙂';
+    else msg = calib.step === 1 ? 'Pon tu cara en el óvalo con la boca cerrada 😐' : 'Ahora abre la boca bien grande 😮';
+  } else if (mouseMode){
+    msg = state === 'ready' ? 'Mantén presionado el clic (o espacio) para abrir la boca y empezar' : '';
+  } else if (!face) msg = 'No te veo: vuelve frente a la cámara 🙂';
+  else if (state === 'ready') msg = 'Abre la boca para empezar 😮';
+  el.textContent = msg; el.classList.toggle('hidden', !msg);
+  const max = Math.max(0.8, (cal.opened || 0.6) * 1.2);
+  $('#meterFill').style.height = clamp(mouth.val / max, 0, 1) * 100 + '%';
+  $('#meterFill').style.background = mouth.open ? C.mango : C.leaf2;
+  $('#mOpen').style.bottom = (th.open / max * 100) + '%';
+  $('#mClose').style.bottom = (th.close / max * 100) + '%';
+}
+
+function loadLB(){ try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; } catch { return []; } }
+function saveLB(a){ try { localStorage.setItem(LB_KEY, JSON.stringify(a)); } catch {} }
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+function renderLB(el){
+  const lb = loadLB().slice(0, 10);
+  if (!lb.length){ el.innerHTML = '<p class="empty">Todavía nadie ha comido. El primero pone la marca.</p>'; return; }
+  el.innerHTML = lb.map(e => `<li class="${e.id === lastEntryId ? 'me' : ''}"><span class="nm">${esc(e.name)}<span class="sub">${e.eaten} frutas · ${e.rotten} podridas</span></span><span class="pts">${e.score}</span></li>`).join('');
+}
+
+// ---------- Loop ----------
+function update(dt, now){
+  if (mouseMode){
+    const want = mouseDown;
+    mouth.val += ((want ? 0.9 : 0.02) - mouth.val) * 0.5;
+    mouth.open = want;
+  }
+  if (state === 'ready'){
+    if (mouth.has && mouth.open){ readyHold += dt; if (readyHold > 0.4){ startCountdown(); } }
+    else readyHold = 0;
+  }
+  if (state === 'countdown'){
+    const el = now - countdownStart, n = 3 - Math.floor(el / 1000);
+    if (n !== lastCount && n > 0){ lastCount = n; showBig(String(n), 900); tone(520, .12, 'sine', .3); }
+    if (el >= 3000){ showBig('¡A comer!', 700); tone(990, .25, 'sine', .3); startGame(now); }
+  }
+  if (state === 'playing'){
+    const el = (now - startTime) / 1000;
+    timeLeft = Math.max(0, GAME_TIME - el);
+    const sec = Math.ceil(timeLeft);
+    if (sec <= 5 && sec > 0 && sec !== lastTick){ lastTick = sec; tone(760, .07, 'sine', .25); }
+    if (timeLeft <= 10 && !frenzy){ frenzy = true; addText(W / 2, H * 0.32, '¡Últimos 10!', C.mango, 66); }
+    const prog = el / GAME_TIME;
+    const diff = 1 + prog * 0.8 + (frenzy ? 0.2 : 0);
+    spawnTimer -= dt;
+    if (spawnTimer <= 0){
+      spawn(prog, diff);
+      if (Math.random() < prog * 0.45) spawn(prog, diff);
+      spawnTimer = (1.1 - 0.55 * prog) * (frenzy ? 0.7 : 1) * (0.8 + Math.random() * 0.4);
+    }
+    updateHUD();
+    if (timeLeft <= 0) endGame();
+  }
+  for (const f of foods){
+    f.age += dt;
+    if (f.st === 'fall'){
+      f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.vr * dt;
+      if (f.x < f.r || f.x > W - f.r) f.vx *= -1;
+      checkMouth(f);
+    } else if (f.st === 'bounce'){
+      f.vy += H * 1.6 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.vr * dt;
+    } else if (f.st === 'eaten'){
+      f.t += dt * 6;
+      const k = clamp(f.t, 0, 1);
+      f.x = f.fx + (mouth.x - f.fx) * k; f.y = f.fy + (mouth.y - f.fy) * k;
+    }
+  }
+  foods = foods.filter(f => !(f.st === 'eaten' && f.t >= 1) && f.y < H + f.r * 3 && f.x > -f.r * 3 && f.x < W + f.r * 3);
+  for (const p of particles){ p.life -= dt; p.vy += 800 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+  particles = particles.filter(p => p.life > 0);
+  for (const t of texts){ t.life -= dt * 1.1; t.y -= 60 * dt; }
+  texts = texts.filter(t => t.life > 0);
+  mouth.chomp = Math.max(0, mouth.chomp - dt * 5);
+  shake = Math.max(0, shake - dt * 3);
+  sick = Math.max(0, sick - dt * 1.5);
+}
+
+function draw(now){
+  ctx.clearRect(0, 0, W, H);
+  if (camOK && video.readyState >= 2){
+    const r = coverRect();
+    ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
+    ctx.drawImage(video, r.ox, r.oy, r.dw, r.dh);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(15,61,46,.32)'; ctx.fillRect(0, 0, W, H);
+  } else { ctx.fillStyle = C.leaf2; ctx.fillRect(0, 0, W, H); }
+
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - .5) * 16 * shake, (Math.random() - .5) * 16 * shake);
+
+  if (state === 'calib') drawCalib();
+  if (debug) for (const o of others) drawIgnored(o);
+  if (face && !mouseMode && ['calib', 'ready', 'countdown', 'playing'].includes(state)) drawLips();
+  if (mouth.has && ['ready', 'countdown', 'playing'].includes(state)) drawMouthZone(now);
+
+  for (const f of foods) drawFood(f, now);
+
+  for (const p of particles){
+    ctx.globalAlpha = clamp(p.life / p.max, 0, 1); ctx.fillStyle = p.c;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.s / 2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  for (const t of texts){
+    ctx.globalAlpha = clamp(t.life, 0, 1);
+    ctx.font = `${t.size}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.strokeStyle = C.leaf; ctx.strokeText(t.txt, t.x, t.y);
+    ctx.fillStyle = t.c; ctx.fillText(t.txt, t.x, t.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  if (sick > 0){ ctx.fillStyle = `rgba(120,150,20,${sick * 0.35})`; ctx.fillRect(0, 0, W, H); }
+  if (debug && face){
+    ctx.font = '14px monospace'; ctx.fillStyle = C.paper; ctx.textAlign = 'left';
+    ctx.fillText(`boca ${mouth.val.toFixed(2)}  abre>${th.open.toFixed(2)}  cierra<${th.close.toFixed(2)}  abierta ${mouth.open}`, 16, H - 200);
+    ctx.fillText(`calibrada: tamaño ${Math.round(cal.size)}px · boca ${cal.closed.toFixed(2)}→${cal.opened ? cal.opened.toFixed(2) : 'por defecto'}`, 16, H - 180);
+  }
+}
+
+function drawFood(f, now){
+  const k = f.st === 'eaten' ? 1 - clamp(f.t, 0, 1) * 0.85 : 1;
+  const s = f.r * 2.3 * k;
+  ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot);
+  if (f.st === 'bounce') ctx.globalAlpha = 0.75;
+  ctx.drawImage(f.spr, -s / 2, -s / 2, s, s);
+  ctx.restore();
+  if (f.kind === 'rotten' && f.st !== 'eaten'){
+    // Líneas de mal olor
+    ctx.save(); ctx.strokeStyle = 'rgba(163,180,58,.9)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    for (let i = -1; i <= 1; i++){
+      ctx.beginPath();
+      for (let j = 0; j <= 10; j++){
+        const yy = f.y - f.r * 1.1 - j * 3.2, xx = f.x + i * f.r * 0.45 + Math.sin(j * 0.9 + now / 160 + i) * 4;
+        j ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy);
+      }
+      ctx.stroke();
+    }
+    // Moscas
+    ctx.fillStyle = '#1b1b1b';
+    for (let i = 0; i < 2; i++){
+      const a = now / (180 + i * 60) + i * 3, rr = f.r * (1.15 + i * 0.25);
+      ctx.beginPath(); ctx.arc(f.x + Math.cos(a) * rr, f.y + Math.sin(a * 1.3) * rr * 0.6, 3.2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function drawLips(){
+  const P = face.P;
+  ctx.save();
+  ctx.beginPath();
+  LIPS.forEach((k, i) => i ? ctx.lineTo(P[k].x, P[k].y) : ctx.moveTo(P[k].x, P[k].y));
+  ctx.closePath();
+  ctx.lineWidth = 4; ctx.strokeStyle = mouth.open ? C.mango : 'rgba(255,250,240,.7)';
+  ctx.stroke();
+  ctx.restore();
+}
+function drawMouthZone(now){
+  const hitR = Math.max(34, mouth.w * 0.75) * (1 + mouth.chomp * 0.2);
+  ctx.save();
+  if (mouth.open){
+    ctx.fillStyle = 'rgba(255,176,0,.16)'; ctx.beginPath(); ctx.arc(mouth.x, mouth.y, hitR, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = C.mango; ctx.setLineDash([10, 8]); ctx.lineDashOffset = -now / 30;
+  } else {
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,250,240,.45)'; ctx.setLineDash([4, 8]);
+  }
+  ctx.beginPath(); ctx.arc(mouth.x, mouth.y, hitR, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+function drawCalib(){
+  const z = calibZone();
+  const need = calib.step === 1 ? 1.5 : 0.7;
+  const prog = clamp(calib.hold / need, 0, 1);
+  ctx.save();
+  ctx.lineWidth = 5; ctx.strokeStyle = C.mango; ctx.setLineDash([16, 12]);
+  ctx.beginPath(); ctx.ellipse(z.x, z.y, z.rx, z.ry, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+  ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.strokeStyle = C.guava;
+  ctx.beginPath(); ctx.ellipse(z.x, z.y, z.rx + 14, z.ry + 14, 0, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2); ctx.stroke();
+  const title = `Calibración ${calib.step} de 2`;
+  ctx.font = `${Math.max(26, Math.min(W, H) * 0.05)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const ty = Math.max(50, z.y - z.ry - 50);
+  ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.strokeStyle = C.leaf; ctx.strokeText(title, W / 2, ty);
+  ctx.fillStyle = C.paper; ctx.fillText(title, W / 2, ty);
+  ctx.restore();
+}
+function drawIgnored(o){
+  ctx.save(); ctx.strokeStyle = C.guava; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+  ctx.beginPath(); ctx.arc(o.center.x, o.center.y, o.size * 0.6, 0, Math.PI * 2); ctx.stroke();
+  ctx.font = '13px monospace'; ctx.fillStyle = C.guava; ctx.textAlign = 'center';
+  ctx.fillText(`ignorada · ${Math.round(o.size)}px`, o.center.x, o.center.y - o.size * 0.7);
+  ctx.restore();
+}
+
+function loop(now){
+  const dt = Math.min(0.05, (now - lastFrame) / 1000); lastFrame = now;
+  processFace(now);
+  update(dt, now);
+  updateHint();
+  draw(now);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ---------- Eventos ----------
+$('#sens').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  $('#sens').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  sensK = parseFloat(b.dataset.v); applyThresholds();
+});
+$('#btnPlay').addEventListener('click', () => {
+  ac();
+  playerName = ($('#name').value.trim() || 'Anónimo').slice(0, 18);
+  lastEntryId = null;
+  if (mouseMode) toReady(); else toCalib();
+});
+$('#name').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnPlay').click(); });
+$('#btnAgain').addEventListener('click', () => { ac(); lastEntryId = null; toReady(); });
+$('#btnRecal').addEventListener('click', () => { ac(); lastEntryId = null; if (mouseMode) toReady(); else toCalib(); });
+$('#btnMenu').addEventListener('click', () => { $('#name').value = ''; toMenu(); $('#name').focus(); });
+$('#btnReset').addEventListener('click', () => { if (confirm('¿Borrar todos los puntajes de la tabla?')){ saveLB([]); renderLB($('#lbMenu')); } });
+$('#btnRetry').addEventListener('click', boot);
+$('#btnMouse').addEventListener('click', () => { mouseMode = true; ac(); toMenu(); });
+
+canvas.addEventListener('pointermove', e => { if (mouseMode){ mouth.x = e.clientX; mouth.y = e.clientY; mouth.has = true; mouth.w = 70; } });
+canvas.addEventListener('pointerdown', e => { if (mouseMode){ mouth.x = e.clientX; mouth.y = e.clientY; mouth.has = true; mouth.w = 70; mouseDown = true; } });
+addEventListener('pointerup', () => { mouseDown = false; });
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space' && mouseMode){ mouseDown = true; e.preventDefault(); }
+  if (e.key === 'd' || e.key === 'D') debug = !debug;
+  if ((e.key === 'c' || e.key === 'C') && !mouseMode && ['ready', 'over', 'calib'].includes(state)) toCalib();
+  if (e.key === 'Escape' && ['calib', 'ready', 'countdown', 'playing'].includes(state)) toMenu();
+});
+addEventListener('keyup', e => { if (e.code === 'Space') mouseDown = false; });
+
+boot();
+</script>
+</body>
+</html>
